@@ -1,0 +1,177 @@
+#!/usr/bin/env ruby
+
+require 'rubygems'
+require 'calculator'
+require 'calcex'
+require 'optparse'
+require 'stringio'
+require 'getoptlong'
+
+def isDigit(c)
+  if c.nil?
+    false
+  else
+    (?0 <= c and c <= ?9)
+  end
+end
+
+def getfs(filename)
+  data = ''
+  f = File.open(filename, "r")
+  f.each_line do |line|
+    data += line
+  end
+  return data
+end
+
+$calc = Calculator.new()
+
+opts = GetoptLong.new(
+  [ '--InitVar', '-v', GetoptLong::REQUIRED_ARGUMENT ],
+  [ '--Env', '-e', GetoptLong::NO_ARGUMENT ],
+  [ '--Precision', '-p', GetoptLong::REQUIRED_ARGUMENT],
+  [ '--Xit', '-s', GetoptLong::REQUIRED_ARGUMENT],
+  
+)
+
+ENV.each_pair do |key, value|
+  cvar = key.partition("_")
+  if cvar.first == "CALCVAR"
+    prx = cvar.last
+    prx = prx.to_s
+    pv = value
+    pv = pv.chomp(";")
+    pv = pv.to_f
+    $calc.potatos.store(prx, pv)
+    puts "#{prx}, #{pv}"
+  end
+end
+
+var= 0
+b = ""
+pre = 0
+trick = ""
+cut = ""
+
+opts.each do |opt, arg|
+  case opt
+  when '--En'
+    trick = "-e"
+  when '--InitVar'
+    var = arg
+    b = var.chomp(";")
+    b = b.partition("=")
+    c = b.first
+    d = b.last
+    c = c.to_s
+    d = d.to_f
+    if trick == "-e" then
+      if $calc.potatos.has_key?(c) then
+        nm = $calc.potatos[c]
+        $calc.potatos.store(c, nm)
+      end
+    else
+      $calc.potatos.store(c, d)
+    end
+  when '--Precision'
+    if isDigit(arg) then
+      pre = arg.to_i
+    else
+      puts "Required int"
+      exit 0
+    end
+  when '--Xit'
+    cut = "y"
+    ms = arg
+    
+    dd = ms
+    dd = dd.chomp(".expr")
+    
+    dd = dd.partition("/")
+    
+    dd = dd.last
+    
+    dd = dd.to_s
+    dd = dd.partition("/")
+    dd = dd.last
+    dd = dd.to_s
+    dd = dd + ".out"
+    if not ARGV.empty? then
+      tmp = ARGV
+      tmp.delete("-p")
+      #ARGV.each do |value|
+        tmp.each do |value|
+        zz = value
+        aa = zz
+        aa = aa.chomp(".expr")
+        aa = aa.partition("/")
+        aa = aa.last
+        aa = aa.to_s
+        aa = aa.partition("/")
+        aa = aa.last
+        aa = aa.to_s
+        aa = aa + ".out"
+        #puts "#{rm}"
+
+        File.open(aa, "w") do |li|
+          g = File.open(zz, "r")
+          g.each_line do |ln|
+            if pre != 0 then
+              tp = $calc.eval(ln)
+              tp = tp.round(pre)
+              li.puts "= " + tp.to_s
+            else
+              li.puts "= " + $calc.eval(ln).to_s
+            end
+          end
+        end
+      end
+    end
+    datos = ''
+    File.open(dd, "w") do |l|
+      f = File.open(ms, "r")
+      f.each_line do |line|
+        if pre != 0 then
+          tpo = $calc.eval(line)
+          tpo = tpo.round(pre)
+          l.puts "= " + tpo.to_s
+        else
+          l.puts"= " + $calc.eval(line).to_s
+        end
+      end
+    end
+  end
+  exit 0
+end
+
+$stdout.print ">"
+$stdout.flush
+while text = gets
+  
+  
+  begin
+    if cut == "y" then
+      exit 0
+    end
+    if pre != 0 then
+      re = $calc.eval(text)
+      re = re.round(pre)
+      puts "= " + re.to_s
+    else
+      puts "= " + $calc.eval(text).to_s
+    end
+  rescue ParseError
+    puts "Parse Error"
+  rescue UnrecognizedTokenException
+    puts "UnrecognizedTokenException"
+  rescue TypeErrorException
+    puts "TypeErrorException"
+  rescue Inf
+    puts "inf"
+  rescue Nan
+    puts "nan"
+  rescue
+    puts "Unkown exception"
+  end
+  $stdout.print "> "
+end
